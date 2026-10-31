@@ -20,14 +20,14 @@ Requires **macOS** and DSH **>=0.2.1-rc.5, <0.3.0**. Tested with DSH 0.2.1-rc.5 
 In DSH, open **Plugins → Add Plugin** and install:
 
 ```text
-dsh-asc-studio
+dsh-asc-studio@0.1.3
 ```
 
 Open the **App Store** panel and connect with your App Store Connect API credentials: Issuer ID, Key ID, and `.p8` file.
 
 The plugin edits existing versions and languages. Creating versions, adding languages, and submitting for review remain in App Store Connect.
 
-ASC Studio checks for updates when opened and shows a notice when a newer release is available. You can also check in Settings. On DSH 0.2.1-rc.5, follow the notice’s update guide: uninstall from DSH's plugin manager, then add `dsh-asc-studio@latest`. This keeps local data and Keychain credentials. The cleanup-and-uninstall action inside ASC Studio deletes them.
+ASC Studio checks for updates when opened and shows a notice when a newer release is available. You can also check in Settings. On DSH 0.2.1-rc.5, follow the notice’s update guide: uninstall from DSH's plugin manager, then add the exact package version shown in the guide. A very recent release may not be selected by `@latest` because of the package manager’s release-age policy. This keeps local data and Keychain credentials. The cleanup-and-uninstall action inside ASC Studio deletes them.
 
 ## Agent workflow
 

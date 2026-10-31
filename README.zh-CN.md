@@ -20,14 +20,14 @@
 在 DSH 的 **插件 → 添加插件** 中安装：
 
 ```text
-dsh-asc-studio
+dsh-asc-studio@0.1.3
 ```
 
 打开 **App Store** 面板，使用 App Store Connect API 的 Issuer ID、Key ID 和 `.p8` 文件连接账号。
 
 插件用于编辑已有版本和语言。新建版本、添加语言和提交审核仍在 App Store Connect 中完成。
 
-打开 ASC Studio 时会自动检查更新，有新版时显示提示，也可在设置中手动检查。在 DSH 0.2.1-rc.5 中，按提示里的更新指引操作：从 DSH 插件管理页卸载，再添加 `dsh-asc-studio@latest`。这种方式保留插件本地数据和钥匙串凭据；ASC Studio 内的“清理并卸载”会删除这些数据。
+打开 ASC Studio 时会自动检查更新，有新版时显示提示，也可在设置中手动检查。在 DSH 0.2.1-rc.5 中，按提示里的更新指引操作：从 DSH 插件管理页卸载，再添加指引中显示的确切包版本。刚发布的版本可能受到包管理器等待期限制，使用 `@latest` 仍可能装到旧版。这种方式保留插件本地数据和钥匙串凭据；ASC Studio 内的“清理并卸载”会删除这些数据。
 
 ## Agent 协作
 
