@@ -1,0 +1,72 @@
+{
+  "name": "dsh-asc-studio",
+  "version": "0.1.0",
+  "description": "Edit App Store Connect listing text and images in the DeepSeek Harness sidebar.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xdx888999/dsh-asc-studio.git"
+  },
+  "homepage": "https://github.com/xdx888999/dsh-asc-studio#readme",
+  "bugs": {
+    "url": "https://github.com/xdx888999/dsh-asc-studio/issues"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "node --experimental-vm-modules --test",
+    "lint": "eslint lib test support",
+    "check": "npm run lint && npm test",
+    "prepublishOnly": "npm run check"
+  },
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "lib/",
+    "locale/*.json",
+    "icon.svg",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "app-store-connect",
+    "sidebar"
+  ],
+  "license": "MIT",
+  "author": "xdx888999",
+  "engines": {
+    "node": ">=18",
+    "dsh": ">=0.2.1-rc.5 <0.3.0"
+  },
+  "os": ["darwin"],
+  "overrides": {
+    "minimatch": "^11.0.1"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-sidebar-right"
+      ]
+    }
+  },
+  "devDependencies": {
+    "eslint": "^10.14.0",
+    "jsdom": "^26.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}

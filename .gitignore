@@ -1,0 +1,16 @@
+node_modules/
+*.log
+.DS_Store
+.tmp/
+.mimosa/
+.release/
+*.tgz
+.npmrc
+
+# 私钥与凭据绝不进仓库
+*.p8
+*.pem
+.env
+.env.*
+credentials.json
+authkey*.json
