@@ -2,6 +2,8 @@
 
 [English](README.md) | 中文
 
+[![npm 自动发布](https://github.com/xdx888999/dsh-asc-studio/actions/workflows/publish.yml/badge.svg?branch=main)](https://github.com/xdx888999/dsh-asc-studio/actions/workflows/publish.yml)
+
 在 [DeepSeek Harness](https://deepseek.com/harness/) 侧边栏编辑 App Store Connect 上架文案及图片。
 
 ## 功能

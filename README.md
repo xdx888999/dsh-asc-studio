@@ -2,6 +2,8 @@
 
 English | [中文](README.zh-CN.md)
 
+[![Publish to npm](https://github.com/xdx888999/dsh-asc-studio/actions/workflows/publish.yml/badge.svg?branch=main)](https://github.com/xdx888999/dsh-asc-studio/actions/workflows/publish.yml)
+
 Edit App Store Connect listing text and images in the [DeepSeek Harness](https://deepseek.com/harness/) sidebar.
 
 ## Features
