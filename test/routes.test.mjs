@@ -10,6 +10,7 @@ import { loadModule } from '../support/modules.mjs'
 const appId = '123456', loc = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', shot = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
 async function fixture(profileDir = '/fake-profile/route-tests', options = {}) {
 	const writes = [], reads = [], credentialScopes = [], credentialReads = [], credentialWrites = [], pathChecks = []
+	const updateChecks = []
 	const versionCopy = { locale: 'en-US', description: 'Test', keywords: 'test', whatsNew: 'test' }
 	const infoCopy = { locale: 'en-US', name: 'Test' }
 	const client = {
@@ -41,6 +42,10 @@ async function fixture(profileDir = '/fake-profile/route-tests', options = {}) {
 		'node:os': { homedir: () => '/fake-home', platform: () => 'darwin' },
 		'node:fs/promises': { ...fs, lstat: (...args) => { pathChecks.push(args[0]); return fs.lstat(...args) } },
 		[pathToFileURL(resolve('lib/asc/client.js')).href]: { ...asc, AscClient: class { constructor() { return client } } },
+		[pathToFileURL(resolve('lib/updates.js')).href]: { createUpdateChecker: () => ({ check: async (input) => {
+			updateChecks.push(input)
+			return { currentVersion: '0.1.2', latestVersion: '0.1.3', checkedAt: 1000, status: 'available' }
+		} }) },
 		[pathToFileURL(resolve('lib/store.js')).href]: {
 			createCredentialStore: (scope) => { credentialScopes.push(scope); return {
 				loadCredentials: async () => { credentialReads.push('load'); return { configured: true, issuerId: 'dummy', keyId: 'dummy', p8: 'fake' } },
@@ -71,8 +76,29 @@ async function fixture(profileDir = '/fake-profile/route-tests', options = {}) {
 		return { status, payload, headers: responseHeaders }
 	}
 	const callTool = (name, args, sessionId = 'session-a') => agentTools.get(name).execute(args, { agent: { session: { id: sessionId } }, signal: new AbortController().signal })
-	return { request, callTool, agentTools, writes, reads, credentialScopes, credentialReads, credentialWrites, pathChecks, routes, versionCopy, infoCopy }
+	return { request, callTool, agentTools, writes, reads, credentialScopes, credentialReads, credentialWrites, pathChecks, routes, versionCopy, infoCopy, updateChecks }
 }
+
+test('protects update checks with host authentication and never reads ASC credentials', async () => {
+	const f = await fixture()
+	assert.equal((await f.request('updates', undefined, { method: 'GET', headers: { cookie: '' } })).status, 401)
+	assert.equal((await f.request('updates', undefined, { method: 'GET', headers: { origin: 'https://foreign.example' } })).status, 403)
+	assert.equal((await f.request('updates', undefined, { method: 'GET', address: '192.0.2.1' })).status, 403)
+	assert.equal((await f.request('updates', undefined, { method: 'GET', headers: { 'sec-fetch-site': 'cross-site' } })).status, 403)
+	assert.equal((await f.request('updates', {})).status, 405)
+	assert.equal((await f.request('updates?refresh=2', undefined, { method: 'GET' })).status, 400)
+	assert.equal((await f.request('updates?url=https://foreign.example', undefined, { method: 'GET' })).status, 400)
+	assert.equal((await f.request('updates?refresh=1&refresh=1', undefined, { method: 'GET' })).status, 400)
+	assert.equal(f.updateChecks.length, 0)
+	const response = await f.request('updates', undefined, { method: 'GET' })
+	assert.equal(response.status, 200)
+	assert.equal(response.payload.update.status, 'available')
+	assert.equal(response.headers['cache-control'], 'no-store')
+	assert.equal((await f.request('updates?refresh=1', undefined, { method: 'GET' })).status, 200)
+	assert.deepEqual(f.updateChecks.map((entry) => entry.force), [false, true])
+	assert.equal(f.pathChecks.length, 0)
+	assert.deepEqual([f.credentialReads.length, f.credentialWrites.length, f.reads.length, f.writes.length], [0, 0, 0, 0])
+})
 
 test('serves only the bundled brand image without loading ASC credentials', async () => {
 	const f = await fixture()

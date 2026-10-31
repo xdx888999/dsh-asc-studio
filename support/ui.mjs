@@ -31,6 +31,7 @@ export async function mountPanel(t, handler = () => undefined, options = {}) {
 		let payload = await handler(request)
 		if (payload === undefined) {
 			switch (request.url.pathname.split('/').pop()) {
+				case 'updates': payload = { ok: true, update: { currentVersion: '0.1.2', latestVersion: '0.1.2', status: 'current', checkedAt: 1793433600000 } }; break
 				case 'config': payload = { ok: true, config: { configured: true, ...(options.profileId ? { profileId: options.profileId } : {}) } }; break
 				case 'apps': payload = { ok: true, apps: [{ id: A, name: 'App A', bundleId: 'app.a' }, { id: B, name: 'App B', bundleId: 'app.b' }] }; break
 				case 'icon': payload = { ok: true, iconUrl: null }; break

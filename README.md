@@ -27,7 +27,7 @@ Open the **App Store** panel and connect with your App Store Connect API credent
 
 The plugin edits existing versions and languages. Creating versions, adding languages, and submitting for review remain in App Store Connect.
 
-To update in DSH 0.2.1-rc.5, uninstall from DSH's plugin manager, then add `dsh-asc-studio@latest`. This keeps the plugin's local data and Keychain credentials. The cleanup-and-uninstall action inside ASC Studio deletes them.
+ASC Studio checks for updates when opened and shows a notice when a newer release is available. You can also check in Settings. On DSH 0.2.1-rc.5, follow the notice’s update guide: uninstall from DSH's plugin manager, then add `dsh-asc-studio@latest`. This keeps local data and Keychain credentials. The cleanup-and-uninstall action inside ASC Studio deletes them.
 
 ## Agent workflow
 
@@ -38,6 +38,8 @@ Open your project in DSH and ask, for example:
 The Agent prepares drafts. You review and sync them in the panel.
 
 ## Data and privacy
+
+Update checks request only public package metadata from npm and cache results in memory for six hours. They do not send ASC credentials, listing text, or images.
 
 API private keys are stored in macOS Keychain. Local preview images can be cleared in settings. Use the plugin’s cleanup action before uninstalling to remove its local data and credentials.
 
