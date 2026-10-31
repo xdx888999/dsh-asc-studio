@@ -27,6 +27,8 @@ dsh-asc-studio
 
 插件用于编辑已有版本和语言。新建版本、添加语言和提交审核仍在 App Store Connect 中完成。
 
+在 DSH 0.2.1-rc.5 中更新时，从 DSH 插件管理页卸载，再添加 `dsh-asc-studio@latest`。这种方式保留插件本地数据和钥匙串凭据；ASC Studio 内的“清理并卸载”会删除这些数据。
+
 ## Agent 协作
 
 在 DSH 打开项目后，可以这样提出要求：
@@ -51,6 +53,8 @@ npm run check
 ```
 
 本地开发时，在 DSH 插件管理中安装仓库的绝对路径。
+
+推送到 `main` 后会自动检查，包版本号未发布过时才发布到 npm。`package.json`、`package-lock.json` 和 `lib/client.js` 中的版本号需要保持一致。发布使用 npm 可信发布，绑定 GitHub 的 `npm` 环境。
 
 ## 许可证
 

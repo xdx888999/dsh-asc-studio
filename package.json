@@ -1,6 +1,6 @@
 {
   "name": "dsh-asc-studio",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Edit App Store Connect listing text and images in the DeepSeek Harness sidebar.",
   "repository": {
     "type": "git",
@@ -23,12 +23,12 @@
     "./client": "./lib/client.js",
     "./package.json": "./package.json",
     "./locale/*.json": "./locale/*.json",
-    "./icon": "./icon.svg"
+    "./icon": "./icon.png"
   },
   "files": [
     "lib/",
     "locale/*.json",
-    "icon.svg",
+    "icon.png",
     "cordis.patch.yml",
     "README.md",
     "README.zh-CN.md",
@@ -46,7 +46,9 @@
     "node": ">=18",
     "dsh": ">=0.2.1-rc.5 <0.3.0"
   },
-  "os": ["darwin"],
+  "os": [
+    "darwin"
+  ],
   "overrides": {
     "minimatch": "^11.0.1"
   },

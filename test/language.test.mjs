@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { act } from 'react'
-import { mountPanel } from '../support/ui.mjs'
+import { deferred, mountPanel } from '../support/ui.mjs'
 
 const preferenceKey = 'dsh-asc.ui-language'
 const languageName = (locale, lang) => new Intl.DisplayNames([lang], { type: 'language' }).of(locale)
@@ -18,6 +18,11 @@ async function chooseLanguage(ui, value) {
 
 for (const [name, options, expectedLanguage, expectedPreference] of [
 	['prefers the first browser language', { language: 'en-US', languages: ['zh-Hant-TW', 'en-US'] }, 'zh-Hans', 'auto'],
+	['uses the native system language instead of the desktop renderer language', { language: 'en-US', readNativeLocale: async () => ({ languages: ['zh-Hans-CN', 'en-CN'], preference: null }) }, 'zh-Hans', 'auto'],
+	['uses English when the native system language is English', { language: 'zh-CN', readNativeLocale: async () => ({ languages: ['en-US', 'zh-CN'], preference: 'zh' }) }, 'en', 'auto'],
+	['preserves an explicit preference over the native system language', { language: 'en-US', storedLanguage: 'en', readNativeLocale: async () => ({ languages: ['zh-Hans-CN'], preference: null }) }, 'en', 'en'],
+	['falls back to the browser when the native locale read fails', { language: 'zh-CN', readNativeLocale: async () => { throw new Error('Native bridge unavailable') } }, 'zh-Hans', 'auto'],
+	['falls back to the browser for an invalid native language list', { language: 'zh-CN', readNativeLocale: async () => ({ languages: [null, 42] }) }, 'zh-Hans', 'auto'],
 	['uses English for other browser languages', { language: 'fr-FR' }, 'en', 'auto'],
 	['restores an explicit preference over browser language', { language: 'zh-CN', storedLanguage: 'en' }, 'en', 'en'],
 	['ignores an invalid stored preference', { language: 'zh-HK', storedLanguage: 'invalid' }, 'zh-Hans', 'auto']
@@ -29,6 +34,44 @@ for (const [name, options, expectedLanguage, expectedPreference] of [
 		assert.equal(ui.container.querySelector('#asc-ui-language').value, expectedPreference)
 	})
 }
+
+test('refreshes the native system language without losing drafts or changing the saved preference', async (t) => {
+	let languages = ['en-US']
+	const ui = await mountPanel(t, undefined, { includeEntry: true, readNativeLocale: async () => ({ languages, preference: null }) })
+	await ui.selectApp('App A'); await ui.edit('Name', 'Unsaved title')
+	languages = ['zh-Hans-CN']
+	await act(async () => ui.dom.window.dispatchEvent(new ui.dom.window.Event('focus')))
+	assert.equal(visibleRoot(ui).lang, 'zh-Hans')
+	assert.equal(ui.field('名称').value, 'Unsaved title')
+	assert.ok(ui.container.querySelector('[aria-label="打开 App Store 文案面板"]'))
+	assert.equal(ui.dom.window.localStorage.getItem(preferenceKey), null)
+	languages = ['en-US']
+	await act(async () => ui.dom.window.dispatchEvent(new ui.dom.window.Event('languagechange')))
+	assert.equal(visibleRoot(ui).lang, 'en')
+	assert.equal(ui.field('Name').value, 'Unsaved title')
+	assert.equal(ui.calls.filter((call) => call.method === 'POST').length, 0)
+})
+
+test('ignores a stale native locale response after a newer system language read', async (t) => {
+	const first = deferred(), second = deferred()
+	let reads = 0
+	const ui = await mountPanel(t, undefined, { readNativeLocale: () => ++reads === 1 ? first.promise : second.promise })
+	await act(async () => ui.dom.window.dispatchEvent(new ui.dom.window.Event('focus')))
+	await act(async () => second.resolve({ languages: ['zh-CN'], preference: null }))
+	assert.equal(visibleRoot(ui).lang, 'zh-Hans')
+	await act(async () => first.resolve({ languages: ['en-US'], preference: null }))
+	assert.equal(visibleRoot(ui).lang, 'zh-Hans')
+})
+
+test('does not override a manual choice when native initialization finishes later', async (t) => {
+	const initial = deferred()
+	const ui = await mountPanel(t, undefined, { readNativeLocale: () => initial.promise })
+	await ui.click(ui.container.querySelector('[aria-label="Settings"]'))
+	await chooseLanguage(ui, 'zh')
+	await act(async () => initial.resolve({ languages: ['en-US'], preference: null }))
+	assert.equal(visibleRoot(ui).lang, 'zh-Hans')
+	assert.equal(ui.container.querySelector('#asc-ui-language').value, 'zh')
+})
 
 test('switches interface language immediately while preserving the app, listing language, and drafts', async (t) => {
 	const ui = await mountPanel(t, undefined, { includeEntry: true })

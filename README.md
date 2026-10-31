@@ -27,6 +27,8 @@ Open the **App Store** panel and connect with your App Store Connect API credent
 
 The plugin edits existing versions and languages. Creating versions, adding languages, and submitting for review remain in App Store Connect.
 
+To update in DSH 0.2.1-rc.5, uninstall from DSH's plugin manager, then add `dsh-asc-studio@latest`. This keeps the plugin's local data and Keychain credentials. The cleanup-and-uninstall action inside ASC Studio deletes them.
+
 ## Agent workflow
 
 Open your project in DSH and ask, for example:
@@ -51,6 +53,8 @@ npm run check
 ```
 
 For local development, install the repository’s absolute path through DSH’s plugin manager.
+
+Pushes to `main` run checks and publish to npm when the package version is new. Keep the versions in `package.json`, `package-lock.json`, and `lib/client.js` in sync. Publishing uses npm trusted publishing through the `npm` GitHub environment.
 
 ## License
 

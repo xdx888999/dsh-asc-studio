@@ -20,6 +20,7 @@ export async function mountPanel(t, handler = () => undefined, options = {}) {
 	if (options.storedLanguage !== undefined) dom.window.localStorage.setItem('dsh-asc.ui-language', options.storedLanguage)
 	for (const [key, value] of Object.entries(options.storageEntries ?? {})) dom.window.localStorage.setItem(key, value)
 	if (options.storageUnavailable) Object.defineProperty(dom.window, 'localStorage', { get() { throw new Error('Storage unavailable') } })
+	if (options.readNativeLocale) dom.window.__DSH_LOCALE__ = { read: options.readNativeLocale }
 	const navigator = { language: options.language ?? 'en-US', languages: options.languages }
 	globalThis.window = dom.window; globalThis.document = dom.window.document
 	globalThis.IS_REACT_ACT_ENVIRONMENT = true

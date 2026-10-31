@@ -63,13 +63,27 @@ async function fixture(profileDir = '/fake-profile/route-tests', options = {}) {
 		const req = Readable.from(body === undefined ? [] : [Buffer.from(JSON.stringify(body))])
 		Object.assign(req, { method, url: `/plugins/dsh-asc-studio/${route}`, socket: { remoteAddress: address },
 			headers: { origin: 'http://127.0.0.1:3080', host: '127.0.0.1:3080', cookie: 'test-owner-session', 'content-type': 'application/json', 'x-dsh-asc-studio': '1', ...headers } })
-		let status, payload
-		await routes.get(req.url.split('?')[0])(req, { writeHead: (value) => { status = value }, end: (value) => { payload = JSON.parse(value) } })
-		return { status, payload }
+		let status, payload, responseHeaders
+		await routes.get(req.url.split('?')[0])(req, {
+			writeHead: (value, nextHeaders) => { status = value; responseHeaders = nextHeaders },
+			end: (value) => { payload = responseHeaders?.['content-type'] === 'image/png' ? value : JSON.parse(value) }
+		})
+		return { status, payload, headers: responseHeaders }
 	}
 	const callTool = (name, args, sessionId = 'session-a') => agentTools.get(name).execute(args, { agent: { session: { id: sessionId } }, signal: new AbortController().signal })
 	return { request, callTool, agentTools, writes, reads, credentialScopes, credentialReads, credentialWrites, pathChecks, routes, versionCopy, infoCopy }
 }
+
+test('serves only the bundled brand image without loading ASC credentials', async () => {
+	const f = await fixture()
+	const response = await f.request('brand-icon', undefined, { method: 'GET', headers: { origin: undefined } })
+	assert.equal(response.status, 200)
+	assert.equal(response.headers['content-type'], 'image/png')
+	assert.deepEqual(response.payload, await fs.readFile(new URL('../icon.png', import.meta.url)))
+	assert.equal((await f.request('brand-icon', {})).status, 405)
+	assert.equal((await f.request('brand-icon', undefined, { method: 'GET', headers: { 'sec-fetch-site': 'cross-site' } })).status, 403)
+	assert.deepEqual([f.credentialReads.length, f.credentialWrites.length, f.reads.length, f.writes.length], [0, 0, 0, 0])
+})
 
 test('connects agent tools to authenticated session drafts without granting ASC writes', async () => {
 	const f = await fixture()

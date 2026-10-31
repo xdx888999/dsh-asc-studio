@@ -1,0 +1,45 @@
+name: Publish to npm
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'xdx888999/dsh-asc-studio' && github.ref == 'refs/heads/main'
+    runs-on: macos-15
+    timeout-minutes: 20
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Install development dependencies
+        run: npm ci --ignore-scripts
+      - name: Check code and tests
+        run: npm run check
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+      - name: Check package contents and release version
+        id: release
+        run: node support/release.mjs
+      - name: Publish with npm trusted publishing
+        if: steps.release.outputs.publish == 'true'
+        # 检查已在同一工作区通过；跳过重复的 prepublishOnly。
+        run: npm publish --access public --provenance --ignore-scripts
