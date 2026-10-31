@@ -1,6 +1,6 @@
 {
   "name": "dsh-asc-studio",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Edit App Store Connect listing text and images in the DeepSeek Harness sidebar.",
   "repository": {
     "type": "git",

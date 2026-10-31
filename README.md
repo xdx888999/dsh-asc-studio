@@ -8,10 +8,10 @@ Edit App Store Connect listing text and images in the [DeepSeek Harness](https:/
 
 - Edit localized names, subtitles, descriptions, keywords, release notes, and promotional text.
 - Review changes before syncing, with character counts and checks for conflicting edits in ASC.
-- Manage screenshots, product page headers, and search result images.
+- Upload, reorder, and delete screenshots; manage product page headers and search result images.
 - Preview product and search pages in a device layout.
 - Ask the DSH Agent to draft copy and translations, or summarize Git changes into release notes.
-- English and Simplified Chinese interface.
+- English and Simplified Chinese interface, with light and dark themes that follow DSH.
 
 ## Install
 
@@ -20,7 +20,7 @@ Requires **macOS** and DSH **>=0.2.1-rc.5, <0.3.0**. Tested with DSH 0.2.1-rc.5 
 In DSH, open **Plugins → Add Plugin** and install:
 
 ```text
-dsh-asc-studio@0.1.3
+dsh-asc-studio@0.1.4
 ```
 
 Open the **App Store** panel and connect with your App Store Connect API credentials: Issuer ID, Key ID, and `.p8` file.

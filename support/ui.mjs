@@ -17,6 +17,7 @@ export function deferred() {
 }
 export async function mountPanel(t, handler = () => undefined, options = {}) {
 	const dom = new JSDOM('<html><head></head><body><div id="root"></div></body></html>', { url: 'http://127.0.0.1:3080', pretendToBeVisual: true })
+	options.configureWindow?.(dom.window)
 	if (options.storedLanguage !== undefined) dom.window.localStorage.setItem('dsh-asc.ui-language', options.storedLanguage)
 	for (const [key, value] of Object.entries(options.storageEntries ?? {})) dom.window.localStorage.setItem(key, value)
 	if (options.storageUnavailable) Object.defineProperty(dom.window, 'localStorage', { get() { throw new Error('Storage unavailable') } })

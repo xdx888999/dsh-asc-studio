@@ -3,6 +3,61 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { AscError } from '../lib/asc/client.js'
 import { uploadScreenshot } from '../lib/asc/screenshots.js'
+import * as screenshots from '../lib/asc/screenshots.js'
+
+function orderFixture(ids = ['first', 'second']) {
+	const writes = []
+	let current = ids
+	const client = {
+		get: async () => ({ body: { data: current.map((id) => ({ type: 'appScreenshots', id })) } }),
+		patch: async (path, body, options) => {
+			const completed = await options.beforeAttempt()
+			if (completed) return completed
+			writes.push({ path, body })
+			current = body.data.map((entry) => entry.id)
+			return { status: 204 }
+		}
+	}
+	return { client, writes, options: { setId: 'set-one', expectedIds: ['first', 'second'], screenshotIds: ['second', 'first'] } }
+}
+
+test('reorders the complete screenshot relationship in the requested order', async () => {
+	const f = orderFixture()
+	await screenshots.reorderScreenshots(f.client, f.options)
+	assert.equal(f.writes[0].path, '/v1/appScreenshotSets/set-one/relationships/appScreenshots')
+	assert.deepEqual(f.writes[0].body.data, ['second','first'].map((id) => ({ type: 'appScreenshots', id })))
+})
+
+test('rejects missing, duplicate and foreign screenshot IDs before a reorder', async () => {
+	for (const ids of [['first'], ['first','first'], ['first','foreign'], ['first','../second']]) {
+		const f = orderFixture()
+		await assert.rejects(() => screenshots.reorderScreenshots(f.client, { ...f.options, screenshotIds: ids }), { code: 'REQUEST' })
+		assert.equal(f.writes.length, 0)
+	}
+})
+
+test('does not overwrite a screenshot order changed in ASC since loading', async () => {
+	const f = orderFixture(['first','third'])
+	await assert.rejects(() => screenshots.reorderScreenshots(f.client, f.options), { code: 'SCREENSHOT_CONFLICT' })
+	assert.equal(f.writes.length, 0)
+})
+
+test('recognizes an accepted reorder before retrying a lost response', async () => {
+	const f = orderFixture()
+	await screenshots.reorderScreenshots(f.client, f.options)
+	await screenshots.reorderScreenshots(f.client, f.options)
+	assert.equal(f.writes.length, 1)
+})
+
+test('rejects incomplete or malformed screenshot relationships before reordering', async () => {
+	for (const body of [{ data: [null] }, { data: [] }, { data: [{ type: 'apps', id: 'first' }] },
+		{ data: [{ type: 'appScreenshots', id: 'first' }], links: { next: '/next-page' } }]) {
+		const f = orderFixture()
+		f.client.get = async () => ({ body })
+		await assert.rejects(() => screenshots.reorderScreenshots(f.client, f.options), { code: 'SCREENSHOT_CONFLICT' })
+		assert.equal(f.writes.length, 0)
+	}
+})
 
 function fixture() {
 	const calls = []

@@ -13,17 +13,19 @@ async function fixture(profileDir = '/fake-profile/route-tests', options = {}) {
 	const updateChecks = []
 	const versionCopy = { locale: 'en-US', description: 'Test', keywords: 'test', whatsNew: 'test' }
 	const infoCopy = { locale: 'en-US', name: 'Test' }
+	const shotEntries = options.shots ?? [{ id: shot, attributes: { assetDeliveryState: { state: 'FAILED' } } }]
 	const client = {
 		get: async (path) => {
 			reads.push(path)
-			if (path.includes('/appStoreVersions?')) return { body: { data: [{ id: 'version-1', attributes: { versionString: '1.0', appStoreState: 'PREPARE_FOR_SUBMISSION' } }] } }
+			if (path.includes('/appStoreVersions?')) return { body: { data: [{ id: 'version-1', attributes: { versionString: '1.0', appStoreState: options.versionState ?? 'PREPARE_FOR_SUBMISSION' } }] } }
 			if (path.includes('/appInfos?')) return { body: { data: [{ id: 'info-1', attributes: { appStoreState: 'PREPARE_FOR_SUBMISSION' } }] } }
 			if (path.includes('/appInfoLocalizations?')) return { body: { data: [{ id: 'info-local', attributes: { ...infoCopy } }] } }
 			if (path.includes('/appStoreVersionLocalizations?')) return { body: { data: [{ id: loc, attributes: { ...versionCopy } }] } }
 			if (path === `/v1/appStoreVersionLocalizations/${loc}`) return { body: { data: { id: loc, type: 'appStoreVersionLocalizations', attributes: { ...versionCopy } } } }
 			if (path === '/v1/appInfoLocalizations/info-local') return { body: { data: { id: 'info-local', type: 'appInfoLocalizations', attributes: { ...infoCopy } } } }
 			if (path.endsWith('/appScreenshotSets')) return { body: { data: [{ id: 'set-1', attributes: { screenshotDisplayType: 'APP_IPHONE_67' } }] } }
-			if (path.endsWith('/appScreenshots')) return { body: { data: [{ id: shot, attributes: { assetDeliveryState: { state: 'FAILED' } } }] } }
+			if (path.includes('/relationships/appScreenshots')) return { body: { data: shotEntries.map((entry) => ({ id: entry.id, type: 'appScreenshots' })) } }
+			if (path.endsWith('/appScreenshots')) return { body: { data: shotEntries } }
 			if (path.includes('/placements?')) return { body: { data: [] } }
 			if (path === `/v1/apps/${appId}`) return { body: { data: { attributes: { name: 'Test', primaryLocale: 'en-US' } } } }
 			throw new Error(`Unexpected mocked request: ${path}`)
@@ -278,6 +280,31 @@ test('refuses a screenshot from another language before deletion', async () => {
 	assert.equal(response.status, 409); assert.equal(f.writes.length, 0)
 	assert.equal((await f.request('screenshots', { action: 'delete', appId, versionLocId: loc, screenshotId: shot })).status, 200)
 	assert.equal(f.writes[0].path, `/v1/appScreenshots/${shot}`)
+})
+
+test('scopes screenshot reordering to the editable version and its actual set', async () => {
+	const second = 'cccccccc-cccc-cccc-cccc-cccccccccccc'
+	const shots = [shot, second].map((id) => ({ id, attributes: { assetDeliveryState: { state: 'COMPLETE' } } }))
+	const body = { action: 'reorder', appId, versionLocId: loc, setId: 'set-1', expectedIds: [shot, second], screenshotIds: [second, shot] }
+	const f = await fixture(undefined, { shots })
+	assert.equal((await f.request('screenshots', { ...body, setId: 'foreign-set' })).status, 409)
+	assert.equal((await f.request('screenshots', { ...body, versionLocId: second })).status, 409)
+	assert.equal((await f.request('screenshots', { ...body, screenshotIds: [second,second] })).status, 400)
+	assert.equal(f.writes.length, 0)
+	assert.equal((await f.request('screenshots', body)).status, 200)
+	assert.equal(f.writes.length, 1)
+	assert.equal(f.writes[0].path, '/v1/appScreenshotSets/set-1/relationships/appScreenshots')
+	assert.deepEqual(Array.from(f.writes[0].body.data, (entry) => entry.id), [second, shot])
+	const locked = await fixture(undefined, { shots, versionState: 'WAITING_FOR_REVIEW' })
+	assert.equal((await locked.request('screenshots', body)).status, 409)
+	assert.equal(locked.writes.length, 0)
+})
+
+test('rejects reordering screenshots that are still processing', async () => {
+	const f = await fixture(undefined, { shots: [{ id: shot, attributes: { assetDeliveryState: { state: 'UPLOAD_COMPLETE' } } }] })
+	const response = await f.request('screenshots', { action: 'reorder', appId, versionLocId: loc, setId: 'set-1', expectedIds: [shot], screenshotIds: [shot] })
+	assert.equal(response.status, 409)
+	assert.equal(f.writes.length, 0)
 })
 
 test('requires localization scope on creative mutations', async () => {
