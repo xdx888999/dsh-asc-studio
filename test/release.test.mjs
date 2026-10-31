@@ -1,8 +1,38 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readPublishState, shouldPublish, validatePackedFiles, validateReleaseVersions } from '../support/release.mjs'
+import { containsPrivateContent, readPublishState, shouldPublish, validatePackedFiles, validateReleaseVersions } from '../support/release.mjs'
 
 const metadata = { name: 'dsh-asc-studio', versions: { '0.1.0': {} }, 'dist-tags': { latest: '0.1.0' } }
+
+test('detects local paths without relying on a particular user or disk name', () => {
+	for (const path of [
+		'/Users/example/project', '/Volumes/Example Disk/project', '/home/example/project',
+		'/root/project', '/media/example/disk', '/mnt/example/project',
+		'/private/var/folders/example/cache', '/var/folders/example/cache',
+		'C:\\Users\\example\\project', 'D:/Users/example/project',
+		'C:\\Documents and Settings\\example\\project', 'file:///Users/example/project'
+	]) {
+		assert.equal(containsPrivateContent(path), true, path)
+		assert.equal(containsPrivateContent(JSON.stringify({ path })), true, path)
+		assert.equal(containsPrivateContent(`Source: ${path}`), true, path)
+	}
+	assert.equal(containsPrivateContent(String.raw`{"path":"\/Users\/example\/project"}`), true)
+})
+
+test('allows public URLs and portable relative paths', () => {
+	for (const content of [
+		'https://example.com/Users/example/project', 'https://example.com/home/example',
+		'https://github.com/example/project', 'lib/client.js', './Users/example/project',
+		'../Volumes/example/project', '~/.dsh/profiles', 'process.env.HOME'
+	]) assert.equal(containsPrivateContent(content), false, content)
+})
+
+test('continues to reject private key blocks and npm tokens', () => {
+	for (const prefix of ['', 'EC ', 'RSA ']) {
+		assert.equal(containsPrivateContent(`-----BEGIN ${prefix}PRIVATE KEY-----\nexample`), true)
+	}
+	assert.equal(containsPrivateContent('npm_' + 'A'.repeat(36)), true)
+})
 
 test('publishes a new stable version and skips an already published version', () => {
 	assert.equal(shouldPublish('0.1.1', metadata), true)

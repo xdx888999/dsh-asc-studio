@@ -35,6 +35,15 @@ export function validatePackedFiles(files) {
 	}
 }
 
+export function containsPrivateContent(content) {
+	// 同时识别源码、JSON 转义字符串和 file URL 中的本机路径。
+	const normalized = content.replace(/\\\//g, '/').replace(/\\\\/g, '\\')
+	const localPath = /(?:^|[\s"'`=(:])(?:file:\/\/)?(?:\/(?:Users|Volumes|home|media|mnt)\/[^/\s"'`]+|\/root(?:\/|$)|\/(?:private\/)?var\/folders\/[^/\s"'`]+|[a-z]:[\\/](?:Users|Documents and Settings)[\\/][^\\/\s"'`]+)/im
+	return /^-----BEGIN (?:EC |RSA )?PRIVATE KEY-----/m.test(content)
+		|| /\bnpm_[A-Za-z0-9]{30,}\b/.test(content)
+		|| localPath.test(normalized)
+}
+
 export function shouldPublish(version, metadata) {
 	const next = stableVersion(version)
 	if (metadata?.name !== PACKAGE_NAME || !metadata.versions || typeof metadata.versions !== 'object') throw new Error('Invalid npm package metadata')
@@ -59,7 +68,7 @@ async function main() {
 	for (const file of pack.files) {
 		if (file.path === 'icon.png') continue
 		const content = await readFile(file.path, 'utf8')
-		if (/^-----BEGIN (?:EC |RSA )?PRIVATE KEY-----/m.test(content) || /\bnpm_[A-Za-z0-9]{30,}\b/.test(content) || /\/(?:Users\/tx|Volumes\/MarsSSD)\//.test(content)) {
+		if (containsPrivateContent(content)) {
 			throw new Error(`Private content detected in ${file.path}`)
 		}
 	}
